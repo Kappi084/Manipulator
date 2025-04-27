@@ -1,1 +1,165 @@
+#include <Arduino.h>
+
+#include <AccelStepper.h>
+#include <MultiStepper.h>
+#include <Servo.h>  
+#include "Motion.h"
+#include <Wire.h>
+
+int Gripper_open = 30;
+int Gripper_closed = 0;
+int Rotatingunit_0 = 60;
+int Rotatingunit_180 = 100;
+
+
+//Eingabe
+int _Start = 0;
+int _Stopp = 0;
+int _Home = 0;
+int _Reset = 0;
+int _NotAus = 0;
+int _Autobetrieb = 0; //0 ist Freigebenen 1 ist nicht Freigegeben 
+int _Freigabe = 0;
+
+int x = 0;
+int STATUS = 0;
+
+
+#define NODE_ADDRESS 1
+#define PAYLOAD_SIZE 2
+byte nodePayload[PAYLOAD_SIZE];
+
+Manipulator _Station1CoreXY;
+Servos _Station1Servo;
+
+void receiveEvent(int bytes) {
+  x = Wire.read();              // lies die gesendeten Daten aus
+  // 10 = Start Button
+  // 20 = Stopp Button
+  // 30 = Home Button
+  // 40 = Reset Button
+  // 50 = Not_Aus
+
+  if (x == 10) {// 10 = Start Button
+    _Start = 1;
+  }
+
+  if (x == 20) {// 20 = Stopp Button
+    _Stopp = 1;
+  }
+  if (x == 30) {// 30 = Home Position (Initialiserung)
+    /*_manipulator1.init();
+    Gripper.write(Gripper_open);
+    Rotatingunit.write(Rotatingunit_0);
+    Freigabe = 0;*/
+    _Home = 1;
+  }
+  if (x == 40) {// 40 = Reset (Quittieren des Not Aus und Stopp)
+    _Reset = 1;
+  }
+
+  if (x == 50) {// 50 = Not Aus (Fehler....)
+    _NotAus = 1;
+  }
+
+  delay(10000);
+
+  Serial.println(x);
+}
+
+
+void setup() {
+  //Initialisieren: Hier werden, die Motoren angelegt und der Maximal speed eingegeben.
+  //Kalibrierung: hier werden die Werte nach dem Kalibrieren eingetragen.
+  _Station1CoreXY.init(4, 4, 4);
+  //Initialisieren: Hier werden, die Motoren angelegt und die null Positionen eingegeben.
+  _Station1Servo.init(0, 10, 0); //(Greifer Grade offen, Greifer Grade geschlossen, Dreheinheit Grade Null Position)
+
+  //Referenzieren: Er fährt bis zum Endschalter
+  //_Station1CoreXY.reference(0,0,0);
+
+  
+  Serial.begin(9600);
+  Wire.begin(NODE_ADDRESS);
+  Wire.onReceive(receiveEvent);
+}
+
+
+void loop() {
+
+  if(_Start == 1){
+/*    
+    _Station1Servo.motion("open", 0);
+    delay(2000);
+*/
+
+    _Station1CoreXY.motion(1500, 0, 100, 5000);
+    delay(2000);
+    Serial.println();
+    Serial.println("Position 1");
+
+    _Station1CoreXY.motion(1500, 3000, 100, 5000);
+    delay(2000);
+
+    _Station1CoreXY.motion(0, 3000, 100, 5000);
+    delay(2000);
+
+    _Station1CoreXY.motion(0, 0, 0, 5000);
+    delay(2000);
+    Serial.println();
+    Serial.println("Position 2");
+ 
+    _Station1Servo.motion("close", 0);
+    delay(2000);
+    _Station1Servo.motion("open", 0);
+    delay(2000);
+    Serial.println();
+    Serial.println("Bauteil abgelegt");
+
+    _Station1Servo.motion("close", 0);
+    delay(2000);
+
+
+    _Station1Servo.motion("close", 0);
+    delay(2000);
+    _Station1Servo.motion("close", 90);
+    delay(2000);
+    _Station1Servo.motion("close", 0);
+    delay(2000);
+
+    _Start = 0;
+  }
+
+  //Liest aus, ob im seriellen Monitor der Wert 1 geschrieben wurde...
+ /*
+  if(_Start == 1){
+
+    //Fährt auf POS1
+    _Station1CoreXY.motion(100, 200, 10, 100); //(X-Position, Y-Position, Z-Position);
+    //Öffnet den Greifer
+    _Station1Servo.motion("open", 0); //(open||closed, Grade von 0 - 180);
+
+    //Fährt mit der Z-Achse nach unten
+    _Station1CoreXY.motion(100, 200, 50, 100);
+    //schließt den Greifer
+    _Station1Servo.motion("close", 0);
+    //Fährt mit der Z-Achse nach oben
+    _Station1CoreXY.motion(100, 200, 10, 100);
+
+    //Fährt auf POS2
+   _Station1CoreXY.motion(100, 200, 10, 100); //(X-Position, Y-Position, Z-Position);
+   //Öffnet den Greifer
+   _Station1Servo.motion("close", 180); //(open||closed, Grade von 0 - 180);
+
+  //Fährt mit der Z-Achse nach unten
+    _Station1CoreXY.motion(100, 200, 50, 100);
+    //Öffnet den Greifer
+    _Station1Servo.motion("open", 180);
+    //Fährt mit der Z-Achse nach oben
+    _Station1CoreXY.motion(100, 200, 10, 100);
+    _Start = 0;
+  }
+    */
+  
+}
 
