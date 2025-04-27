@@ -1,1 +1,110 @@
+#include <Arduino.h>
+#include <Wire.h>
+
+int NO_Start = A0;
+int NC_Stopp = A1;
+int NO_Reset = A2;
+int NO_Home = A3;
+int NO_NotHalt = 8;
+
+int LED_Start = 7;
+int LED_Stopp = 6;
+int LED_Reset = 5;
+int LED_Home = 4;
+
+int Freigabe = 0;
+int NotAus = 0;
+
+unsigned long prevTime = millis();
+unsigned long prevTime2 = millis();
+unsigned long currentTime = millis();
+
+/* MASTER */
+#define NODE_MAX_NUMBER 1
+#define PAYLOAD_SIZE 2
+int nodePayload[NODE_MAX_NUMBER][PAYLOAD_SIZE];
+
+
+void setup() {
+  Serial.begin(9600);
+  Wire.begin();
+
+  pinMode(LED_Start, OUTPUT);
+  pinMode(LED_Stopp, OUTPUT);
+  pinMode(LED_Reset, OUTPUT);
+  pinMode(LED_Home, OUTPUT);
+
+  pinMode(NO_Start, INPUT_PULLUP);
+  pinMode(NC_Stopp, INPUT_PULLUP);
+  pinMode(NO_Home, INPUT_PULLUP);
+  pinMode(NO_Reset, INPUT_PULLUP);
+  pinMode(NO_NotHalt, INPUT_PULLUP);
+
+}
+
+void sendeDaten(int empfaenger, int daten){
+  // Senden
+  Wire.beginTransmission(empfaenger);   // sendet zu Node Empfaenger
+  Wire.write(daten);                    // sendet Daten
+  Wire.endTransmission();               // Übermittlungsstop  
+}
+
+void loop() {
+  currentTime = millis();
+  
+  if (Freigabe == 1 && digitalRead(NO_Start) == LOW){
+    sendeDaten(1, 10);
+    Serial.println("Start gedrückt");
+  }
+  if (digitalRead(NC_Stopp) == HIGH){
+    sendeDaten(1, 20);
+    Serial.println("Stopp gedrückt");
+    Freigabe = 0;
+  }
+  if (Freigabe == 1 && digitalRead(NO_Home) == LOW){
+    sendeDaten(1, 30);
+    Serial.println("Home gedrückt");
+  }
+  if (Freigabe == 0 && digitalRead(NO_Reset) == LOW){ //NotAus == 1 && Freigabe == 0 &&
+    sendeDaten(1, 40);
+    Serial.println("Reset gedrückt");
+    NotAus = 0;
+    Freigabe = 1;
+  }
+  /*
+  if (digitalRead(NO_NotHalt) == LOW){
+    sendeDaten(1, 50);
+    Serial.println("Not Halt");
+    Freigabe = 0;
+    NotAus = 1;
+  }*/
+
+  //Blinkende LED Bei Start
+  if (currentTime - prevTime > 1000 && Freigabe == 1 && LED_Start == LOW) {
+    digitalWrite(LED_Start, HIGH);
+    digitalWrite(LED_Stopp, LOW);
+    digitalWrite(LED_Reset, LOW);
+    digitalWrite(LED_Home, LOW);
+    prevTime = currentTime;
+  }
+  if (currentTime - prevTime > 1000 && Freigabe == 1 && LED_Start == HIGH) {
+    digitalWrite(LED_Start, LOW);
+    digitalWrite(LED_Stopp, LOW);
+    digitalWrite(LED_Reset, LOW);
+    digitalWrite(LED_Home, LOW);
+    prevTime = currentTime;
+  }
+
+  //Leuchtende LED Bei Start
+  if (currentTime - prevTime2 > 1000 && Freigabe == 1 && LED_Start == LOW) {
+    digitalWrite(LED_Start, HIGH);
+
+    prevTime2 = currentTime;
+  } else{
+    digitalWrite(LED_Start, LOW);
+  }
+
+}
+
+
 
